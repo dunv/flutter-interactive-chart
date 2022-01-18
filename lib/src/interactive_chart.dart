@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
+import 'package:interactive_chart/interactive_chart.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'candle_data.dart';
@@ -60,6 +61,9 @@ class InteractiveChart extends StatefulWidget {
   /// This provides the width of a candlestick at the current zoom level.
   final ValueChanged<double>? onCandleResize;
 
+  final List<Trendline>? trendlines;
+  final bool showTrendlines;
+
   const InteractiveChart({
     Key? key,
     required this.candles,
@@ -70,11 +74,12 @@ class InteractiveChart extends StatefulWidget {
     this.overlayInfo,
     this.onTap,
     this.onCandleResize,
+    this.trendlines,
+    bool? showTrendlines,
   })  : this.style = style ?? const ChartStyle(),
-        assert(candles.length >= 3,
-            "InteractiveChart requires 3 or more CandleData"),
-        assert(initialVisibleCandleCount >= 3,
-            "initialVisibleCandleCount must be more 3 or more"),
+        assert(candles.length >= 3, "InteractiveChart requires 3 or more CandleData"),
+        assert(initialVisibleCandleCount >= 3, "initialVisibleCandleCount must be more 3 or more"),
+        this.showTrendlines = showTrendlines ?? false,
         super(key: key);
 
   @override
@@ -146,23 +151,17 @@ class _InteractiveChartState extends State<InteractiveChart> {
           return c.open ?? c.close;
         }
 
-        final maxPrice =
-            candlesInRange.map(highest).whereType<double>().reduce(max);
-        final minPrice =
-            candlesInRange.map(lowest).whereType<double>().reduce(min);
-        final maxVol = candlesInRange
-            .map((c) => c.volume)
-            .whereType<double>()
-            .fold(double.negativeInfinity, max);
-        final minVol = candlesInRange
-            .map((c) => c.volume)
-            .whereType<double>()
-            .fold(double.infinity, min);
+        final maxPrice = candlesInRange.map(highest).whereType<double>().reduce(max);
+        final minPrice = candlesInRange.map(lowest).whereType<double>().reduce(min);
+        final maxVol = candlesInRange.map((c) => c.volume).whereType<double>().fold(double.negativeInfinity, max);
+        final minVol = candlesInRange.map((c) => c.volume).whereType<double>().fold(double.infinity, min);
 
         final child = TweenAnimationBuilder(
           tween: PainterParamsTween(
             end: PainterParams(
               candles: candlesInRange,
+              trendlines: widget.trendlines, //TODO: filter out the ones which are not in view
+              showTrendlines: widget.showTrendlines,
               style: widget.style,
               size: size,
               candleWidth: _candleWidth,
@@ -222,8 +221,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
             },
             // Pan and zoom
             onScaleStart: (details) => _onScaleStart(details.localFocalPoint),
-            onScaleUpdate: (details) =>
-                _onScaleUpdate(details.scale, details.localFocalPoint, w),
+            onScaleUpdate: (details) => _onScaleUpdate(details.scale, details.localFocalPoint, w),
             child: child,
           ),
         );
@@ -239,8 +237,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
 
   _onScaleUpdate(double scale, Offset focalPoint, double w) {
     // Handle zoom
-    final candleWidth = (_prevCandleWidth * scale)
-        .clamp(_getMinCandleWidth(w), _getMaxCandleWidth(w));
+    final candleWidth = (_prevCandleWidth * scale).clamp(_getMinCandleWidth(w), _getMaxCandleWidth(w));
     final clampedScale = candleWidth / _prevCandleWidth;
     var startOffset = _prevStartOffset * clampedScale;
     // Handle pan
@@ -304,11 +301,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
   }
 
   String defaultTimeLabel(int timestamp, int visibleDataCount) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp)
-        .toIso8601String()
-        .split("T")
-        .first
-        .split("-");
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp).toIso8601String().split("T").first.split("-");
 
     if (visibleDataCount > 20) {
       // If more than 20 data points are visible, we should show year and month.
@@ -322,8 +315,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
   String defaultPriceLabel(double price) => price.toStringAsFixed(2);
 
   Map<String, String> defaultOverlayInfo(CandleData candle) {
-    final date = intl.DateFormat.yMMMd()
-        .format(DateTime.fromMillisecondsSinceEpoch(candle.timestamp));
+    final date = intl.DateFormat.yMMMd().format(DateTime.fromMillisecondsSinceEpoch(candle.timestamp));
     return {
       "Date": date,
       "Open": candle.open?.toStringAsFixed(2) ?? "-",

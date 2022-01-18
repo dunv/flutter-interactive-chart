@@ -1,11 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/widgets.dart';
+import 'package:interactive_chart/interactive_chart.dart';
 
 import 'chart_style.dart';
 import 'candle_data.dart';
 
 class PainterParams {
   final List<CandleData> candles;
+  final List<Trendline>? trendlines;
+  final bool showTrendlines;
   final ChartStyle style;
   final Size size;
   final double candleWidth;
@@ -23,6 +26,8 @@ class PainterParams {
 
   PainterParams({
     required this.candles,
+    this.trendlines,
+    required this.showTrendlines,
     required this.style,
     required this.size,
     required this.candleWidth,
@@ -53,8 +58,7 @@ class PainterParams {
     return i;
   }
 
-  double fitPrice(double y) =>
-      priceHeight * (maxPrice - y) / (maxPrice - minPrice);
+  double fitPrice(double y) => priceHeight * (maxPrice - y) / (maxPrice - minPrice);
 
   double fitVolume(double y) {
     final gap = 12; // the gap between price bars and volume bars
@@ -81,10 +85,11 @@ class PainterParams {
   }
 
   static PainterParams lerp(PainterParams a, PainterParams b, double t) {
-    double lerpField(double getField(PainterParams p)) =>
-        lerpDouble(getField(a), getField(b), t)!;
+    double lerpField(double getField(PainterParams p)) => lerpDouble(getField(a), getField(b), t)!;
     return PainterParams(
       candles: b.candles,
+      trendlines: b.trendlines,
+      showTrendlines: b.showTrendlines,
       style: b.style,
       size: b.size,
       candleWidth: b.candleWidth,
@@ -103,20 +108,20 @@ class PainterParams {
   bool shouldRepaint(PainterParams other) {
     if (candles.length != other.candles.length) return true;
 
-    if (size != other.size ||
-        candleWidth != other.candleWidth ||
-        startOffset != other.startOffset ||
-        xShift != other.xShift) return true;
+    if (trendlines?.length != other.trendlines?.length) {
+      debugPrint('redrawing because of trendlines');
+      return true;
+    }
 
-    if (maxPrice != other.maxPrice ||
-        minPrice != other.minPrice ||
-        maxVol != other.maxVol ||
-        minVol != other.minVol) return true;
+    if (showTrendlines != other.showTrendlines) return true;
+
+    if (size != other.size || candleWidth != other.candleWidth || startOffset != other.startOffset || xShift != other.xShift) return true;
+
+    if (maxPrice != other.maxPrice || minPrice != other.minPrice || maxVol != other.maxVol || minVol != other.minVol) return true;
 
     if (tapPosition != other.tapPosition) return true;
 
-    if (leadingTrends != other.leadingTrends ||
-        trailingTrends != other.trailingTrends) return true;
+    if (leadingTrends != other.leadingTrends || trailingTrends != other.trailingTrends) return true;
 
     if (style != other.style) return true;
 

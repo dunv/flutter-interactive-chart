@@ -41,6 +41,23 @@ class ChartPainter extends CustomPainter {
     for (int i = 0; i < params.candles.length; i++) {
       _drawSingleDay(canvas, params, i);
     }
+
+    if (params.trendlines != null && params.showTrendlines) {
+      int totalTime = params.candles[params.candles.length - 1].timestamp - params.candles[0].timestamp;
+      double pxPerSecond = (params.candleWidth * params.candles.length) / totalTime;
+
+      for (int i = 0; i < params.trendlines!.length; i++) {
+        _drawSingleTrendline(
+          canvas,
+          params,
+          i,
+          params.candles[0].timestamp,
+          params.candles[params.candles.length - 1].timestamp,
+          pxPerSecond,
+        );
+      }
+    }
+
     canvas.restore();
 
     // Draw tap highlight & overlay
@@ -49,6 +66,21 @@ class ChartPainter extends CustomPainter {
         _drawTapHighlightAndOverlay(canvas, params);
       }
     }
+  }
+
+  void _drawSingleTrendline(Canvas canvas, PainterParams params, int i, int startTime, int endTime, double pxPerSecond) {
+    final trendline = params.trendlines![i];
+
+    double startX = (trendline.start - startTime) * pxPerSecond;
+    double endX = startX + (trendline.end - trendline.start) * pxPerSecond;
+
+    canvas.drawLine(
+      Offset(startX + params.candleWidth / 2, params.fitPrice(trendline.y1)),
+      Offset(endX + params.candleWidth / 2, params.fitPrice(trendline.y2)),
+      Paint()
+        ..strokeWidth = 1
+        ..color = Colors.orange,
+    );
   }
 
   void _drawTimeLabels(canvas, PainterParams params) {
@@ -81,9 +113,9 @@ class ChartPainter extends CustomPainter {
   }
 
   void _drawPriceGridAndLabels(canvas, PainterParams params) {
-    [0.0, 0.25, 0.5, 0.75, 1.0]
-        .map((v) => ((params.maxPrice - params.minPrice) * v) + params.minPrice)
-        .forEach((y) {
+    [0.0, 0.25, 0.5, 0.75, 1.0].map((v) => ((params.maxPrice - params.minPrice) * v) + params.minPrice).forEach((y) {
+      // debugPrint('drawing priceAndGridAndLabels Offset(0, ${params.fitPrice(y)}) to Offset(${params.chartWidth}, ${params.fitPrice(y)})');
+
       canvas.drawLine(
         Offset(0, params.fitPrice(y)),
         Offset(params.chartWidth, params.fitPrice(y)),
@@ -119,9 +151,9 @@ class ChartPainter extends CustomPainter {
     final high = candle.high;
     final low = candle.low;
     if (open != null && close != null) {
-      final color = open > close
-          ? params.style.priceLossColor
-          : params.style.priceGainColor;
+      final color = open > close ? params.style.priceLossColor : params.style.priceGainColor;
+
+      // debugPrint('drawing $i (time: ${candle.timestamp}) candle Offset($x, ${params.fitPrice(open)}) to Offset($x, ${params.fitPrice(close)})');
       canvas.drawLine(
         Offset(x, params.fitPrice(open)),
         Offset(x, params.fitPrice(close)),
@@ -171,8 +203,7 @@ class ChartPainter extends CustomPainter {
         // In the front, draw an extra line connecting to out-of-window data
         if (pt != null && params.leadingTrends?.at(j) != null) {
           canvas.drawLine(
-            Offset(x - params.candleWidth,
-                params.fitPrice(params.leadingTrends!.at(j)!)),
+            Offset(x - params.candleWidth, params.fitPrice(params.leadingTrends!.at(j)!)),
             Offset(x, params.fitPrice(pt)),
             trendLinePaint,
           );
@@ -288,8 +319,7 @@ class ChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ChartPainter oldDelegate) =>
-      params.shouldRepaint(oldDelegate.params);
+  bool shouldRepaint(ChartPainter oldDelegate) => params.shouldRepaint(oldDelegate.params);
 }
 
 extension ElementAtOrNull<E> on List<E> {
