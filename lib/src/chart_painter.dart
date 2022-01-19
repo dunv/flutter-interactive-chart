@@ -41,10 +41,41 @@ class ChartPainter extends CustomPainter {
     for (int i = 0; i < params.candles.length; i++) {
       _drawSingleDay(canvas, params, i);
     }
+    canvas.restore();
 
     if (params.trendlines != null && params.showTrendlines) {
-      int totalTime = params.candles[params.candles.length - 1].timestamp - params.candles[0].timestamp;
-      double pxPerSecond = (params.candleWidth * params.candles.length) / totalTime;
+      canvas.save();
+      canvas.clipRect(Offset.zero & Size(params.chartWidth, params.chartHeight));
+
+      // debugPrint(
+      //     'xShift:${params.xShift} candleWidth:${params.candleWidth} candles:${params.candles.length} candles*width:${params.candleWidth * params.candles.length} chartWidth:${params.chartWidth}');
+
+      // leftOffset
+      // - translates xShift into seconds
+      // - the chart displays the center of the first candle with this offset to the left end of the chart
+      double leftOffset = -(params.xShift / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
+
+      // the timestamp all the way to the left of the chart
+      int minTime = params.candles[0].timestamp + leftOffset.toInt();
+
+      // rightOffset
+      // - calculates the "xShift" on the right side and translates into seconds
+      // - sometimes an extra candle is rendered if we are "in-between-candles" -> subtract this one in the calculation
+      // - the chart display the center of the last candle widh this offset to the right end of the chart
+      double rightOffset =
+          ((params.chartWidth - params.candleWidth * (params.candles.length.toDouble() - params.extraCandles) - params.xShift) / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
+
+      // the timestamp all the way to the right of the chart
+      int maxTime = params.candles[params.candles.length - 1].timestamp + rightOffset.toInt();
+
+      // the timeframe displayed in the chart
+      int totalTime = maxTime - minTime;
+
+      // for easier rendering: how many chart-pixels make up a second in "real-time"
+      double pxPerSecond = params.chartWidth.toDouble() / totalTime.toDouble();
+
+      // debugPrint(
+      //     'leftOffsetDays:${(leftOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} rightOffsetDays:${(rightOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} candles:${params.candles.length} minTime:${DateTime.fromMillisecondsSinceEpoch(minTime)} maxTime:${DateTime.fromMillisecondsSinceEpoch(maxTime)}');
 
       for (int i = 0; i < params.trendlines!.length; i++) {
         _drawSingleTrendline(
@@ -56,9 +87,8 @@ class ChartPainter extends CustomPainter {
           pxPerSecond,
         );
       }
+      canvas.restore();
     }
-
-    canvas.restore();
 
     // Draw tap highlight & overlay
     if (params.tapPosition != null) {
@@ -71,15 +101,15 @@ class ChartPainter extends CustomPainter {
   void _drawSingleTrendline(Canvas canvas, PainterParams params, int i, int startTime, int endTime, double pxPerSecond) {
     final trendline = params.trendlines![i];
 
-    double startX = (trendline.start - startTime) * pxPerSecond;
+    double startX = (trendline.start - startTime) * pxPerSecond + params.xShift + params.candleWidth / 2;
     double endX = startX + (trendline.end - trendline.start) * pxPerSecond;
 
     canvas.drawLine(
       Offset(startX + params.candleWidth / 2, params.fitPrice(trendline.y1)),
       Offset(endX + params.candleWidth / 2, params.fitPrice(trendline.y2)),
       Paint()
-        ..strokeWidth = 1
-        ..color = Colors.orange,
+        ..strokeWidth = params.candleWidth > 30 ? 1 : 0.5
+        ..color = trendline.type == 'support' ? params.style.trendlineSupportColor : params.style.trendlineResistanceColor,
     );
   }
 

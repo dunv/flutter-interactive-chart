@@ -9,6 +9,7 @@ class PainterParams {
   final List<CandleData> candles;
   final List<Trendline>? trendlines;
   final bool showTrendlines;
+  final int extraCandles;
   final ChartStyle style;
   final Size size;
   final double candleWidth;
@@ -24,10 +25,13 @@ class PainterParams {
   final List<double?>? leadingTrends;
   final List<double?>? trailingTrends;
 
+  final Duration candleTimeInterval;
+
   PainterParams({
     required this.candles,
     this.trendlines,
     required this.showTrendlines,
+    required this.extraCandles,
     required this.style,
     required this.size,
     required this.candleWidth,
@@ -40,6 +44,7 @@ class PainterParams {
     required this.tapPosition,
     required this.leadingTrends,
     required this.trailingTrends,
+    required this.candleTimeInterval,
   });
 
   double get chartWidth => // width without price labels
@@ -90,6 +95,7 @@ class PainterParams {
       candles: b.candles,
       trendlines: b.trendlines,
       showTrendlines: b.showTrendlines,
+      extraCandles: b.extraCandles,
       style: b.style,
       size: b.size,
       candleWidth: b.candleWidth,
@@ -102,16 +108,14 @@ class PainterParams {
       tapPosition: b.tapPosition,
       leadingTrends: b.leadingTrends,
       trailingTrends: b.trailingTrends,
+      candleTimeInterval: b.candleTimeInterval,
     );
   }
 
   bool shouldRepaint(PainterParams other) {
     if (candles.length != other.candles.length) return true;
 
-    if (trendlines?.length != other.trendlines?.length) {
-      debugPrint('redrawing because of trendlines');
-      return true;
-    }
+    if (trendlines?.length != other.trendlines?.length) return true;
 
     if (showTrendlines != other.showTrendlines) return true;
 

@@ -61,8 +61,21 @@ class InteractiveChart extends StatefulWidget {
   /// This provides the width of a candlestick at the current zoom level.
   final ValueChanged<double>? onCandleResize;
 
+  /// An Optional list of trendlines to be rendered in the chart
+  ///
+  /// Can also be lazily supplied and will render as soon as it is not null
   final List<Trendline>? trendlines;
+
+  /// Display trendlines (if supplied)
+  ///
+  /// This enables showing and hiding of trendlines without resupplying
+  /// the whole dataset to the chart
   final bool showTrendlines;
+
+  // Set the interval between two candles
+  //
+  // Defaults to a day
+  final Duration candleTimeInterval;
 
   const InteractiveChart({
     Key? key,
@@ -75,6 +88,7 @@ class InteractiveChart extends StatefulWidget {
     this.onTap,
     this.onCandleResize,
     this.trendlines,
+    this.candleTimeInterval = const Duration(days: 1),
     bool? showTrendlines,
   })  : this.style = style ?? const ChartStyle(),
         assert(candles.length >= 3, "InteractiveChart requires 3 or more CandleData"),
@@ -118,10 +132,12 @@ class _InteractiveChartState extends State<InteractiveChart> {
         final int count = (w / _candleWidth).ceil();
         final int end = (start + count).clamp(start, widget.candles.length);
         final candlesInRange = widget.candles.getRange(start, end).toList();
+        int extraCandles = 0;
         if (end < widget.candles.length) {
           // Put in an extra item, since it can become visible when scrolling
           final nextItem = widget.candles[end];
           candlesInRange.add(nextItem);
+          extraCandles = 1;
         }
 
         // If possible, find neighbouring trend line data,
@@ -161,6 +177,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
             end: PainterParams(
               candles: candlesInRange,
               trendlines: widget.trendlines, //TODO: filter out the ones which are not in view
+              extraCandles: extraCandles,
               showTrendlines: widget.showTrendlines,
               style: widget.style,
               size: size,
@@ -174,6 +191,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
               tapPosition: _tapPosition,
               leadingTrends: leadingTrends,
               trailingTrends: trailingTrends,
+              candleTimeInterval: widget.candleTimeInterval,
             ),
           ),
           duration: Duration(milliseconds: 300),

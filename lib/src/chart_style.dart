@@ -54,6 +54,10 @@ class ChartStyle {
   /// This appears when user clicks on the chart.
   final Color overlayBackgroundColor;
 
+  final Color trendlineSupportColor;
+
+  final Color trendlineResistanceColor;
+
   const ChartStyle({
     this.volumeHeightFactor = 0.2,
     this.priceLabelWidth = 48.0,
@@ -77,5 +81,7 @@ class ChartStyle {
     this.priceGridLineColor = Colors.grey,
     this.selectionHighlightColor = const Color(0x33757575),
     this.overlayBackgroundColor = const Color(0xEE757575),
+    this.trendlineSupportColor = Colors.blue,
+    this.trendlineResistanceColor = Colors.red,
   });
 }
