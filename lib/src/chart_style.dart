@@ -85,7 +85,7 @@ class ChartStyle {
     this.priceGridLineColor = Colors.grey,
     this.selectionHighlightColor = const Color(0x33757575),
     this.overlayBackgroundColor = const Color(0xEE757575),
-    this.trendlineSupportColor = Colors.blue,
+    this.trendlineSupportColor = Colors.green,
     this.trendlineResistanceColor = Colors.red,
     this.zoneSellColor = const Color(0x964caf50),
     this.zoneBuyColor = const Color(0x96f44336),
