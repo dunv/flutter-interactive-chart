@@ -333,7 +333,7 @@ class _InteractiveChartState extends State<InteractiveChart> {
   String defaultPriceLabel(double price) => price.toStringAsFixed(2);
 
   Map<String, String> defaultOverlayInfo(CandleData candle) {
-    final date = intl.DateFormat.yMMMd().format(DateTime.fromMillisecondsSinceEpoch(candle.timestamp));
+    final date = intl.DateFormat.yMd('de_DE').format(DateTime.fromMillisecondsSinceEpoch(candle.timestamp, isUtc: true));
     return {
       "Date": date,
       "Open": candle.open?.toStringAsFixed(2) ?? "-",

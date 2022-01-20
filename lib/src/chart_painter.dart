@@ -1,7 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart' as intl;
+import 'package:interactive_chart/interactive_chart.dart';
 
 import 'candle_data.dart';
 import 'painter_params.dart';
@@ -47,6 +48,7 @@ class ChartPainter extends CustomPainter {
       canvas.save();
       canvas.clipRect(Offset.zero & Size(params.chartWidth, params.chartHeight));
 
+      // debugPrint('extraCandles:${params.extraCandles}');
       // debugPrint(
       //     'xShift:${params.xShift} candleWidth:${params.candleWidth} candles:${params.candles.length} candles*width:${params.candleWidth * params.candles.length} chartWidth:${params.chartWidth}');
 
@@ -62,8 +64,8 @@ class ChartPainter extends CustomPainter {
       // - calculates the "xShift" on the right side and translates into seconds
       // - sometimes an extra candle is rendered if we are "in-between-candles" -> subtract this one in the calculation
       // - the chart display the center of the last candle widh this offset to the right end of the chart
-      double rightOffset =
-          ((params.chartWidth - params.candleWidth * (params.candles.length.toDouble() - params.extraCandles) - params.xShift) / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
+      // - TODO: always assume one extra candle
+      double rightOffset = ((params.chartWidth - params.candleWidth * (params.candles.length.toDouble() - 1.0) - params.xShift) / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
 
       // the timestamp all the way to the right of the chart
       int maxTime = params.candles[params.candles.length - 1].timestamp + rightOffset.toInt();
@@ -72,19 +74,18 @@ class ChartPainter extends CustomPainter {
       int totalTime = maxTime - minTime;
 
       // for easier rendering: how many chart-pixels make up a second in "real-time"
-      double pxPerSecond = params.chartWidth.toDouble() / totalTime.toDouble();
+      double pxPerMilliSecond = params.chartWidth.toDouble() / totalTime.toDouble();
 
       // debugPrint(
-      //     'leftOffsetDays:${(leftOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} rightOffsetDays:${(rightOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} candles:${params.candles.length} minTime:${DateTime.fromMillisecondsSinceEpoch(minTime)} maxTime:${DateTime.fromMillisecondsSinceEpoch(maxTime)}');
+      //     'pxPerMillisecond:$pxPerMilliSecond leftOffsetDays:${(leftOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} rightOffsetDays:${(rightOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} candles:${params.candles.length} minTime:${DateTime.fromMillisecondsSinceEpoch(minTime, isUtc: true)} maxTime:${DateTime.fromMillisecondsSinceEpoch(maxTime, isUtc: true)}');
 
       for (int i = 0; i < params.trendlines!.length; i++) {
         _drawSingleTrendline(
           canvas,
           params,
           i,
-          params.candles[0].timestamp,
-          params.candles[params.candles.length - 1].timestamp,
-          pxPerSecond,
+          minTime,
+          pxPerMilliSecond,
         );
       }
       canvas.restore();
@@ -98,15 +99,16 @@ class ChartPainter extends CustomPainter {
     }
   }
 
-  void _drawSingleTrendline(Canvas canvas, PainterParams params, int i, int startTime, int endTime, double pxPerSecond) {
+  void _drawSingleTrendline(Canvas canvas, PainterParams params, int i, int minTime, double pxPerMilliSecond) {
     final trendline = params.trendlines![i];
 
-    double startX = (trendline.start - startTime) * pxPerSecond + params.xShift + params.candleWidth / 2;
-    double endX = startX + (trendline.end - trendline.start) * pxPerSecond;
+    double startX = (trendline.start - minTime.toDouble()) * pxPerMilliSecond;
+    double endX = (trendline.end - minTime.toDouble()) * pxPerMilliSecond;
 
+    // debugPrint('trendline i:$i start:${DateTime.fromMillisecondsSinceEpoch(trendline.start.toInt(), isUtc: true)} end:${DateTime.fromMillisecondsSinceEpoch(trendline.end.toInt(), isUtc: true)}');
     canvas.drawLine(
-      Offset(startX + params.candleWidth / 2, params.fitPrice(trendline.y1)),
-      Offset(endX + params.candleWidth / 2, params.fitPrice(trendline.y2)),
+      Offset(startX, params.fitPrice(trendline.y1)),
+      Offset(endX, params.fitPrice(trendline.y2)),
       Paint()
         ..strokeWidth = params.candleWidth > 30 ? 1 : 0.5
         ..color = trendline.type == 'support' ? params.style.trendlineSupportColor : params.style.trendlineResistanceColor,
@@ -286,6 +288,19 @@ class ChartPainter extends CustomPainter {
           ..layout();
 
     final info = getOverlayInfo(candle);
+    if (params.trendlines != null && params.showTrendlines) {
+      for (int i = 0; i < params.trendlines!.length; i++) {
+        final trendline = params.trendlines![i];
+        if (trendline.start == candle.timestamp.toDouble() || trendline.end == candle.timestamp.toDouble()) {
+          final start = intl.DateFormat.yMd('de_DE').format(DateTime.fromMillisecondsSinceEpoch(trendline.start.toInt(), isUtc: true));
+          final end = intl.DateFormat.yMd('de_DE').format(DateTime.fromMillisecondsSinceEpoch(trendline.end.toInt(), isUtc: true));
+          debugPrint('starting trendline i:$i start:$start y1:${trendline.y1.toStringAsFixed(2)} end:$end y2:${trendline.y2.toStringAsFixed(2)}');
+          info.addAll({'Trendline ${i + 1}': '$start - $end'});
+          info.addAll({'                ${i + 1}': '${trendline.y1.toStringAsFixed(2)} - ${trendline.y2.toStringAsFixed(2)}'});
+        }
+      }
+    }
+
     if (info.isEmpty) return;
     final labels = info.keys.map((text) => makeTP(text)).toList();
     final values = info.values.map((text) => makeTP(text)).toList();
@@ -319,12 +334,18 @@ class ChartPainter extends CustomPainter {
     canvas.translate(dx, dy);
 
     // Draw the background for overlay panel
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & Size(panelWidth, panelHeight),
-          Radius.circular(8),
-        ),
-        Paint()..color = params.style.overlayBackgroundColor);
+    canvas.drawRect(Offset.zero & Size(panelWidth, panelHeight), Paint()..color = Colors.white);
+
+    final border = Path();
+    border.lineTo(panelWidth, 0);
+    border.lineTo(panelWidth, panelHeight);
+    border.lineTo(0, panelHeight);
+    border.close();
+    canvas.drawPath(
+        border,
+        Paint()
+          ..color = Colors.black
+          ..strokeWidth = 1);
 
     // Draw texts
     var y = 0.0;

@@ -71,8 +71,8 @@ class ChartStyle {
       color: Colors.grey,
     ),
     this.overlayTextStyle = const TextStyle(
-      fontSize: 16,
-      color: Colors.white,
+      fontSize: 14,
+      color: Colors.black,
     ),
     this.priceGainColor = Colors.green,
     this.priceLossColor = Colors.red,
