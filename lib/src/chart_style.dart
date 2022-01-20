@@ -58,6 +58,10 @@ class ChartStyle {
 
   final Color trendlineResistanceColor;
 
+  final Color zoneBuyColor;
+
+  final Color zoneSellColor;
+
   const ChartStyle({
     this.volumeHeightFactor = 0.2,
     this.priceLabelWidth = 48.0,
@@ -83,5 +87,7 @@ class ChartStyle {
     this.overlayBackgroundColor = const Color(0xEE757575),
     this.trendlineSupportColor = Colors.blue,
     this.trendlineResistanceColor = Colors.red,
+    this.zoneSellColor = const Color(0x964caf50),
+    this.zoneBuyColor = const Color(0x96f44336),
   });
 }

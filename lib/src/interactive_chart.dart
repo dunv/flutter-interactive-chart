@@ -77,6 +77,17 @@ class InteractiveChart extends StatefulWidget {
   // Defaults to a day
   final Duration candleTimeInterval;
 
+  /// An Optional list of zones to be rendered in the chart
+  ///
+  /// Can also be lazily supplied and will render as soon as it is not null
+  final List<Zone>? zones;
+
+  /// Display zones (if supplied)
+  ///
+  /// This enables showing and hiding of zones without resupplying
+  /// the whole dataset to the chart
+  final bool showZones;
+
   const InteractiveChart({
     Key? key,
     required this.candles,
@@ -89,11 +100,12 @@ class InteractiveChart extends StatefulWidget {
     this.onCandleResize,
     this.trendlines,
     this.candleTimeInterval = const Duration(days: 1),
-    bool? showTrendlines,
+    this.showTrendlines = true,
+    this.zones,
+    this.showZones = true,
   })  : this.style = style ?? const ChartStyle(),
         assert(candles.length >= 3, "InteractiveChart requires 3 or more CandleData"),
         assert(initialVisibleCandleCount >= 3, "initialVisibleCandleCount must be more 3 or more"),
-        this.showTrendlines = showTrendlines ?? false,
         super(key: key);
 
   @override
@@ -179,6 +191,8 @@ class _InteractiveChartState extends State<InteractiveChart> {
               trendlines: widget.trendlines, //TODO: filter out the ones which are not in view
               extraCandles: extraCandles,
               showTrendlines: widget.showTrendlines,
+              zones: widget.zones,
+              showZones: widget.showZones,
               style: widget.style,
               size: size,
               candleWidth: _candleWidth,

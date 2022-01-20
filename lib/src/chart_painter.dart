@@ -44,49 +44,46 @@ class ChartPainter extends CustomPainter {
     }
     canvas.restore();
 
+    // leftOffset
+    // - translates xShift into seconds
+    // - the chart displays the center of the first candle with this offset to the left end of the chart
+    double leftOffset = -(params.xShift / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
+    // the timestamp all the way to the left of the chart
+    int minTime = params.candles[0].timestamp + leftOffset.toInt();
+    // rightOffset
+    // - calculates the "xShift" on the right side and translates into seconds
+    // - sometimes an extra candle is rendered if we are "in-between-candles" -> subtract this one in the calculation
+    // - the chart display the center of the last candle widh this offset to the right end of the chart
+    // - TODO: always assume one extra candle
+    double rightOffset = ((params.chartWidth - params.candleWidth * (params.candles.length.toDouble() - 1.0) - params.xShift) / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
+    // the timestamp all the way to the right of the chart
+    int maxTime = params.candles[params.candles.length - 1].timestamp + rightOffset.toInt();
+    // the timeframe displayed in the chart
+    int totalTime = maxTime - minTime;
+    // for easier rendering: how many chart-pixels make up a second in "real-time"
+    double pxPerMilliSecond = params.chartWidth.toDouble() / totalTime.toDouble();
+
+    // debugPrint('extraCandles:${params.extraCandles}');
+    // debugPrint(
+    //     'xShift:${params.xShift} candleWidth:${params.candleWidth} candles:${params.candles.length} candles*width:${params.candleWidth * params.candles.length} chartWidth:${params.chartWidth}');
+
+    // debugPrint(
+    //     'pxPerMillisecond:$pxPerMilliSecond leftOffsetDays:${(leftOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} rightOffsetDays:${(rightOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} candles:${params.candles.length} minTime:${DateTime.fromMillisecondsSinceEpoch(minTime, isUtc: true)} maxTime:${DateTime.fromMillisecondsSinceEpoch(maxTime, isUtc: true)}');
+
     if (params.trendlines != null && params.showTrendlines) {
       canvas.save();
       canvas.clipRect(Offset.zero & Size(params.chartWidth, params.chartHeight));
-
-      // debugPrint('extraCandles:${params.extraCandles}');
-      // debugPrint(
-      //     'xShift:${params.xShift} candleWidth:${params.candleWidth} candles:${params.candles.length} candles*width:${params.candleWidth * params.candles.length} chartWidth:${params.chartWidth}');
-
-      // leftOffset
-      // - translates xShift into seconds
-      // - the chart displays the center of the first candle with this offset to the left end of the chart
-      double leftOffset = -(params.xShift / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
-
-      // the timestamp all the way to the left of the chart
-      int minTime = params.candles[0].timestamp + leftOffset.toInt();
-
-      // rightOffset
-      // - calculates the "xShift" on the right side and translates into seconds
-      // - sometimes an extra candle is rendered if we are "in-between-candles" -> subtract this one in the calculation
-      // - the chart display the center of the last candle widh this offset to the right end of the chart
-      // - TODO: always assume one extra candle
-      double rightOffset = ((params.chartWidth - params.candleWidth * (params.candles.length.toDouble() - 1.0) - params.xShift) / params.candleWidth) * params.candleTimeInterval.inMilliseconds;
-
-      // the timestamp all the way to the right of the chart
-      int maxTime = params.candles[params.candles.length - 1].timestamp + rightOffset.toInt();
-
-      // the timeframe displayed in the chart
-      int totalTime = maxTime - minTime;
-
-      // for easier rendering: how many chart-pixels make up a second in "real-time"
-      double pxPerMilliSecond = params.chartWidth.toDouble() / totalTime.toDouble();
-
-      // debugPrint(
-      //     'pxPerMillisecond:$pxPerMilliSecond leftOffsetDays:${(leftOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} rightOffsetDays:${(rightOffset / 1000 / 60 / 60 / 24 * 100).round() / 100} candles:${params.candles.length} minTime:${DateTime.fromMillisecondsSinceEpoch(minTime, isUtc: true)} maxTime:${DateTime.fromMillisecondsSinceEpoch(maxTime, isUtc: true)}');
-
       for (int i = 0; i < params.trendlines!.length; i++) {
-        _drawSingleTrendline(
-          canvas,
-          params,
-          i,
-          minTime,
-          pxPerMilliSecond,
-        );
+        _drawSingleTrendline(canvas, params, i, minTime, pxPerMilliSecond);
+      }
+      canvas.restore();
+    }
+
+    if (params.zones != null && params.showZones) {
+      canvas.save();
+      canvas.clipRect(Offset.zero & Size(params.chartWidth, params.chartHeight));
+      for (int i = 0; i < params.zones!.length; i++) {
+        _drawSingleZone(canvas, params, i, minTime, maxTime, pxPerMilliSecond);
       }
       canvas.restore();
     }
@@ -112,6 +109,21 @@ class ChartPainter extends CustomPainter {
       Paint()
         ..strokeWidth = params.candleWidth > 30 ? 1 : 0.5
         ..color = trendline.type == 'support' ? params.style.trendlineSupportColor : params.style.trendlineResistanceColor,
+    );
+  }
+
+  void _drawSingleZone(Canvas canvas, PainterParams params, int i, int minTime, int maxTime, double pxPerMilliSecond) {
+    final zone = params.zones![i];
+    double startX = (zone.start - minTime.toDouble()) * pxPerMilliSecond;
+    double endX = (zone.end - minTime.toDouble()) * pxPerMilliSecond;
+
+    // debugPrint('zone i:$i start:${DateTime.fromMillisecondsSinceEpoch(zone.start.toInt(), isUtc: true)} end:${DateTime.fromMillisecondsSinceEpoch(zone.end.toInt(), isUtc: true)}');
+    canvas.drawRect(
+      Rect.fromPoints(
+        Offset(startX, params.fitPrice(zone.low)),
+        Offset(endX, params.fitPrice(zone.high)),
+      ),
+      Paint()..color = zone.type == 'buy' ? params.style.zoneBuyColor : params.style.zoneSellColor,
     );
   }
 

@@ -9,6 +9,8 @@ class PainterParams {
   final List<CandleData> candles;
   final List<Trendline>? trendlines;
   final bool showTrendlines;
+  final List<Zone>? zones;
+  final bool showZones;
   final int extraCandles;
   final ChartStyle style;
   final Size size;
@@ -31,6 +33,8 @@ class PainterParams {
     required this.candles,
     this.trendlines,
     required this.showTrendlines,
+    this.zones,
+    required this.showZones,
     required this.extraCandles,
     required this.style,
     required this.size,
@@ -95,6 +99,8 @@ class PainterParams {
       candles: b.candles,
       trendlines: b.trendlines,
       showTrendlines: b.showTrendlines,
+      zones: b.zones,
+      showZones: b.showZones,
       extraCandles: b.extraCandles,
       style: b.style,
       size: b.size,
@@ -116,8 +122,10 @@ class PainterParams {
     if (candles.length != other.candles.length) return true;
 
     if (trendlines?.length != other.trendlines?.length) return true;
-
     if (showTrendlines != other.showTrendlines) return true;
+
+    if (zones?.length != other.zones?.length) return true;
+    if (showZones != other.showZones) return true;
 
     if (size != other.size || candleWidth != other.candleWidth || startOffset != other.startOffset || xShift != other.xShift) return true;
 
