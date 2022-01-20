@@ -1,6 +1,6 @@
 class Zone {
-  final int start;
-  final int end;
+  final double start;
+  final double end;
   final double high;
   final double low;
   final String type;
@@ -11,12 +11,11 @@ class Zone {
 List<Zone> zonesFromJSON(dynamic json) {
   if (json is! List) throw Exception('err parsing json: root is not list');
   return json.map((dynamic row) {
-    // debugPrint(row.toString());
     return Zone(
-      row['start'],
-      row['end'] * 1000,
-      row['high'],
-      row['low'],
+      row['start'] * 1.0,
+      row['end'] * 1000.0,
+      row['high'] * 1.0,
+      row['low'] * 1.0,
       row['type'],
     );
   }).toList();

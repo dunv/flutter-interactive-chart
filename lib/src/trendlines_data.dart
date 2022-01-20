@@ -22,21 +22,21 @@ List<Trendline> trendlinesFromJSON(dynamic json) {
   return json.map((row) {
     // debugPrint(row.toString());
     return Trendline(
-      row['end'].toDouble(),
-      row['start'].toDouble(),
+      row['end'] * 1.0,
+      row['start'] * 1.0,
       row['still_active'],
       row['touch_points'] != null
           ? row['touch_points'].map<TouchPoint>((dynamic raw) {
               return TouchPoint(
-                raw['distance'].toDouble(),
-                raw['idx'].toDouble(),
-                raw['value'].toDouble(),
+                raw['distance'] * 1.0,
+                raw['idx'] * 1.0,
+                raw['value'] * 1.0,
               );
             }).toList()
           : [],
       row['type'],
-      row['y1'].toDouble(),
-      row['y2'].toDouble(),
+      row['y1'] * 1.0,
+      row['y2'] * 1.0,
     );
   }).toList();
 }

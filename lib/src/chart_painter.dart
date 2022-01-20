@@ -346,18 +346,31 @@ class ChartPainter extends CustomPainter {
     canvas.translate(dx, dy);
 
     // Draw the background for overlay panel
-    canvas.drawRect(Offset.zero & Size(panelWidth, panelHeight), Paint()..color = Colors.white);
+    canvas.drawRect(
+      Offset.zero & Size(panelWidth, panelHeight),
+      Paint()
+        ..color = Colors.white
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.fill,
+    );
 
     final border = Path();
     border.lineTo(panelWidth, 0);
     border.lineTo(panelWidth, panelHeight);
     border.lineTo(0, panelHeight);
-    border.close();
+    border.lineTo(0, 0);
     canvas.drawPath(
         border,
         Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.grey
+          ..strokeWidth = .8);
+    canvas.drawPath(
+        border,
+        Paint()
+          ..style = PaintingStyle.stroke
           ..color = Colors.black
-          ..strokeWidth = 1);
+          ..strokeWidth = .3);
 
     // Draw texts
     var y = 0.0;
